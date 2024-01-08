@@ -35,9 +35,15 @@ def get_ricege_output(mutant_gene_filename: str, mutant_type: str, mutant_dict: 
     gene_file = open(mutant_gene_filename)
     mutant_gene_dict = {}
     not_found_set = set()
-    ricege_mutant_type = mutant_type
+
+    # Updated short notation according to mutant types
     if mutant_type == "Single Base Substitution":
-        ricege_mutant_type = "SNP" 
+        short_mutant_type = "SNP"
+    elif mutant_type == "Translocation":
+        short_mutant_type = "Trans"
+    else:
+        short_mutant_type = mutant_type[:3]
+
     for line in gene_file:
         parsing_line = line.strip().split("\t")
         mutant = parsing_line[0]
@@ -62,11 +68,22 @@ def get_ricege_output(mutant_gene_filename: str, mutant_type: str, mutant_dict: 
         if mut_type != mutant_type:
             continue
 
-        # Key for mutant_gene_dict: mutant_id.mutant_type.chrom.start_position
-        id = f"{mutant}.{ricege_mutant_type[:3]}.{chrom_num}:{start}"
+        # Key for <mutant_gene_dict>: <mutant_id.mutant_type.chrom.start_position>
+        id = f"{mutant}.{short_mutant_type}.{chrom_num}:{start}"
         if mutant not in mutant_dict.keys():
             not_found_set.add(mutant)
             continue
+
+        # Customize the outputs
+        if short_mutant_type == "Trans":
+            chrom2 = parsing_line[6]
+            pos2 = parsing_line[7]
+            mut_size = f"{chrom2} {pos2}"
+        elif short_mutant_type == "SNP":
+            mut_size = end
+
+        if short_mutant_type == "Trans" or short_mutant_type == "SNP":
+            end = start
 
         if id not in mutant_gene_dict.keys():
             mutant_gene_dict[id] = [
@@ -83,7 +100,7 @@ def get_ricege_output(mutant_gene_filename: str, mutant_type: str, mutant_dict: 
         if f"{gene_name} {gene_desc}" not in mutant_gene_dict[id][5]:
             mutant_gene_dict[id][5].append(f"{gene_name} {gene_desc}")
 
-    output_filename = f"ricege_{ricege_mutant_type}"
+    output_filename = f"ricege_{short_mutant_type}"
     output = open(output_filename, "w")
     for id in mutant_gene_dict.keys():
         writeline = "\t".join(mutant_gene_dict[id][:5])
